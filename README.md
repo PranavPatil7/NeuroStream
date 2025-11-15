@@ -1,4 +1,4 @@
-# go-example-financing
+# NeuroStream - AI Ready Event Driven Microservices
 
 This example project aims to demonstrate or serve as inspiration on how to build an event driven architecture using the event sourced and CQRS patterns in go. Enabled by two key libraries:
 - "esrc" which enables Event Sourcing (https://github.com/pperaltaisern/esrc)
