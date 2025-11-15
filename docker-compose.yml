@@ -1,0 +1,88 @@
+version: '3.7'
+services:
+    financing-commands:
+        build: 
+          context: .
+          dockerfile: ./build/commandsd/Dockerfile
+        restart: always    
+        ports:
+          - "8080:8080"
+        environment:
+          - WAIT=4000
+          - COMMAND_SERVER_ADDRESS=0.0.0.0:8080
+          - LOGGER_LEVEL=INFO
+          - COMMAND_DB_CONNECTION_STRING=user=postgres password=postgres host=postgres port=5432 dbname=postgres pool_max_conns=10
+          - AMQP_ADDRESS=amqp://guest:guest@rabbitmq:5672/
+        depends_on:
+          - postgres
+          - rabbitmq
+
+    financing-relayer:
+        build: 
+          context: .
+          dockerfile: ./build/relayerd/Dockerfile
+        restart: always
+        environment:
+          - WAIT=4000
+          - LOGGER_LEVEL=DEBUG
+          - COMMAND_DB_CONNECTION_STRING=user=postgres password=postgres host=postgres port=5432 dbname=postgres pool_max_conns=10
+          - AMQP_ADDRESS=amqp://guest:guest@rabbitmq:5672/
+        depends_on:
+          - postgres
+          - rabbitmq
+
+    financing-queries:
+        build: 
+          context: .
+          dockerfile: ./build/queriesd/Dockerfile
+        restart: always    
+        ports:
+          - "8081:8081"
+        environment:
+          - WAIT=4000
+          - QUERY_SERVER_ADDRESS=0.0.0.0:8081
+          - LOGGER_LEVEL=INFO
+          - QUERY_DB_CONNECTION_STRING=user=postgres password=postgres host=postgres port=5432 dbname=queries
+          - AMQP_ADDRESS=amqp://guest:guest@rabbitmq:5672/
+        depends_on:
+          - postgres
+
+    financing-query-projector:
+        build: 
+          context: .
+          dockerfile: ./build/queryprojectord/Dockerfile
+        restart: always
+        environment:
+          - WAIT=4000
+          - LOGGER_LEVEL=INFO
+          - QUERY_DB_CONNECTION_STRING=user=postgres password=postgres host=postgres port=5432 dbname=queries
+          - AMQP_ADDRESS=amqp://guest:guest@rabbitmq:5672/
+        depends_on:
+          - postgres
+          - rabbitmq
+
+    postgres:
+        image: postgres
+        restart: always
+        environment: 
+          - POSTGRES_HOST=postgres
+          - POSTGRES_USER=postgres
+          - POSTGRES_PASSWORD=postgres
+        logging:
+          options:
+            max-size: 10m
+            max-file: "3"
+        ports:
+          - '5432:5432'
+        volumes:
+          - ./build/postgres:/docker-entrypoint-initdb.d
+
+    rabbitmq:
+      image: rabbitmq:3-management-alpine
+      container_name: 'rabbitmq'
+      ports:
+        - 5672:5672
+        - 15672:15672
+      volumes:
+          - ./build/volumes/rabbitmq/data/:/var/lib/rabbitmq/
+          - ./build/volumes/rabbitmq/log/:/var/log/rabbitmq
